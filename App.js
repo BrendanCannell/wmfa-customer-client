@@ -4,50 +4,14 @@ import { AppLoading, Asset, Font, Icon, Location, TaskManager, Permissions, Noti
 import AppNavigator from "./navigation/AppNavigator";
 // import HomeScreen from "./screens/HomeScreen";
 
-const SERVER = "http://192.168.1.80:3001";
 const LOCATION_TASK = 'background-location-task';
 
 let locationUpdateHook = {onUpdate: null}
 
-let blankStore = {
-  mapRegion: null,
-  user: {},
-  trucks: []
-}
-
 export default class App extends React.Component {
   state = {
-    isLoadingComplete: false,
-    locations: null,
-    ...blankStore
+    isLoadingComplete: false
   };
-
-  setSync = async (obj) => {
-    await AsyncStorage.multiSet(Object.entries(obj).map(([k, v]) => [k, JSON.stringify(v)]))
-    this.setState(obj)
-    console.log('setSync user:', this.state.user)
-  }
-
-  componentDidMount = async () => {
-    await AsyncStorage.clear();
-
-    (await AsyncStorage.multiGet(Object.keys(blankStore)))
-      .forEach(([k, v]) => v && this.setState({[k]: JSON.parse(v)}))
-
-    if (!this.state.user.id) {
-      this.registerWithServer()
-    }
-
-    let trucks = (await (await fetch(SERVER + "/api/truckers", {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      }
-    }).catch(e => console.error(e))).json())
-
-    this.setSync({trucks})
-  }
 
   render() {
     if (!this.state.isLoadingComplete && !this.props.skipLoadingScreen) {
@@ -62,60 +26,10 @@ export default class App extends React.Component {
       return (
         <View style={styles.container}>
           {Platform.OS === 'ios' && <StatusBar barStyle="default" />}
-          {/* <MapScreen initialRegion={this.state.mapRegion} /> */}
-          {<AppNavigator screenProps={{app: this, initialRegion: this.state.mapRegion}} />}
-          {/* <HomeScreen app={this} initialRegion={this.state.mapRegion}/> */}
+          {<AppNavigator />}
         </View>
       );
     }
-  }
-
-  registerWithServer = async () => {
-    let initialStatus = (await Permissions.getAsync(Permissions.NOTIFICATIONS, Permissions.LOCATION)).status,
-        finalStatus = initialStatus === 'granted'
-          ? 'granted'
-          : (await Permissions.askAsync(Permissions.NOTIFICATIONS, Permissions.LOCATION)).status
-  
-    // Stop here if the user did not grant permissions
-    if (finalStatus !== 'granted') return;
-  
-    let pushToken = await Notifications.getExpoPushTokenAsync(),
-
-        location = await Location.getCurrentPositionAsync({}),
-
-        response = await fetch(SERVER + '/api/eaters', {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            pushToken,
-            favorites: [],
-            location: {
-              coordinates: [location.coords.longitude, location.coords.latitude]
-            },
-          })
-        }).catch(e => console.error(e))
-  
-      this.setSync({ user: await response.json() })
-  }
-
-  toggleFavorite = async id => {
-    let favorites = this.state.user.favorites,
-        isFavorite = favorites.includes(id),
-        newFavorites = isFavorite ? favorites.filter(f => f !== id) : [...favorites, id]
-    
-    this.setSync({ user: {...this.state.user, favorites: newFavorites} })
-
-    // fetch(SERVER + '/api/eaters/' + this.state.user.id, {
-    //   method: 'PUT',
-    //   headers: {
-    //     Accept: 'application/json',
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify(this.state.user)
-    // }).catch(e => console.error(e))
   }
 
   _loadResourcesAsync = async () => {
@@ -130,8 +44,7 @@ export default class App extends React.Component {
         // We include SpaceMono because we use it in HomeScreen.js. Feel free
         // to remove this if you are not using it in your app
         'space-mono': require('./assets/fonts/SpaceMono-Regular.ttf'),
-      }),
-      AsyncStorage.getItem('mapRegion').then(r => this.setState({mapRegion: JSON.parse(r)}))
+      })
     ]);
   };
 
@@ -146,7 +59,7 @@ export default class App extends React.Component {
   };
 }
 
-TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
+// TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
   // if (error) {
   //   console.error(error)
   //   return
@@ -165,7 +78,7 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
   // } catch (e) {
   //   console.error(e)
   // }
-});
+// });
 
 const styles = StyleSheet.create({
   container: {
