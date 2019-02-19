@@ -5,19 +5,32 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "eject": "expo eject",
-    "test": "node ./node_modules/jest/bin/jest.js --watchAll"
+    "test": "node ./node_modules/jest/bin/jest.js --watchAll",
+    "index": "node ./scripts/create-index.js",
+    "watch": "nodemon --watch ./scripts/create-index.js --watch '**/epics/' --ignore '**/epics/index.js' --watch '**/actions/' --ignore '**/actions/index.js' --watch '**/reducers/' --ignore '**/reducers/index.js' ./scripts/create-index.js",
+    "watch:epics": "nodemon --watch '**/epics/' --ignore '**/epics/index.js' ./scripts/create-index.js ./epics",
+    "postinstall": "npm run index"
   },
   "jest": {
     "preset": "jest-expo"
   },
   "dependencies": {
     "@expo/samples": "2.1.1",
+    "@turf/circle": "^6.0.1",
+    "@turf/distance": "^6.0.1",
     "expo": "^32.0.0",
     "frisbee": "^2.0.5",
+    "indexr": "^1.1.10",
     "ramda": "^0.26.1",
     "react": "16.5.0",
     "react-native": "https://github.com/expo/react-native/archive/sdk-32.0.0.tar.gz",
-    "react-navigation": "^3.0.9"
+    "react-navigation": "^3.0.9",
+    "react-redux": "^6.0.0",
+    "redux": "^4.0.1",
+    "redux-logger": "^3.0.6",
+    "redux-observable": "^1.0.0",
+    "redux-thunk": "^2.3.0",
+    "rxjs": "^6.4.0"
   },
   "devDependencies": {
     "babel-preset-expo": "^5.0.0",

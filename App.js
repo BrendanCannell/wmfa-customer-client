@@ -1,88 +1,80 @@
-import React from 'react';
-import { AsyncStorage, Platform, StatusBar, StyleSheet, View, Text } from 'react-native';
-import { AppLoading, Asset, Font, Icon, Location, TaskManager, Permissions, Notifications } from 'expo';
-import AppNavigator from "./navigation/AppNavigator";
-// import HomeScreen from "./screens/HomeScreen";
+// TODO
+// Handle push notifications
+// Persist user data
+// Send user data to server
+// Query server for trucks whenever region is set
+// UI
 
-const LOCATION_TASK = 'background-location-task';
+import React from 'react'
+import { AppRegistry, AppState, View, TouchableOpacity } from 'react-native'
+import { Provider } from 'react-redux'
+import R from 'ramda'
 
-let locationUpdateHook = {onUpdate: null}
+import store from "./store"
+import {set, update} from "./actions"
+import AppNavigator from "./navigation/AppNavigator"
 
-export default class App extends React.Component {
-  state = {
-    isLoadingComplete: false
-  };
+// The background location task must be defined in the bundle global scope. The app component hooks into it during construction.
+import { define } from "./backgroundLocationTask"
+let setOnUpdate = define()
 
-  render() {
-    if (!this.state.isLoadingComplete && !this.props.skipLoadingScreen) {
-      return (
-        <AppLoading
-          startAsync={this._loadResourcesAsync}
-          onError={this._handleLoadingError}
-          onFinish={this._handleFinishLoading}
-        />
-      );
-    } else {
-      return (
-        <View style={styles.container}>
-          {Platform.OS === 'ios' && <StatusBar barStyle="default" />}
-          {<AppNavigator />}
-        </View>
-      );
-    }
+class App extends React.Component {
+  constructor() {
+    super()
+
+    this.store = store
+
+    // Subscribe to app state changes
+    AppState.addEventListener('change', () => this.store.dispatch({type: 'APP_STATE_CHANGE'}))
+
+    // Subscribe to background location updates
+    setOnUpdate(location => this.store.dispatch(update([['user', 'local', 'location'], () => location])))
+
+    // Set initial state
+    this.store.dispatch(set({
+      user: {
+        local: {
+          id: null,
+          preferences: {
+            favorites: [],
+            receiveNotifications: true,
+            notificationDistance: 1000
+          },
+          pushToken: null,
+          location: null,
+          timestamp: Date.now()
+        },
+        remote: null
+      },
+      region: null,
+      trucks: {
+        '0': {
+          location: {
+            coordinates: [-79, 35]
+          },
+          title: "Trucko",
+          isFavorite: false
+        }
+      },
+      storageLoaded: false,
+      backgroundLocationTaskRunning: false,
+    }))
+
+    // Go
+    this.store.dispatch({type: 'START'})
   }
 
-  _loadResourcesAsync = async () => {
-    return Promise.all([
-      Asset.loadAsync([
-        require('./assets/images/robot-dev.png'),
-        require('./assets/images/robot-prod.png'),
-      ]),
-      Font.loadAsync({
-        // This is the font that we are using for our tab bar
-        ...Icon.Ionicons.font,
-        // We include SpaceMono because we use it in HomeScreen.js. Feel free
-        // to remove this if you are not using it in your app
-        'space-mono': require('./assets/fonts/SpaceMono-Regular.ttf'),
-      })
-    ]);
-  };
+  render() {
+    return (
+      // <TouchableOpacity style={{flex: 1, alignItems: 'stretch', backgroundColor: 'blue'}} onPress={() => this.store.dispatch(set({here: true}))} />
 
-  _handleLoadingError = error => {
-    // In this case, you might want to report the error to your error
-    // reporting service, for example Sentry
-    console.warn(error);
-  };
-
-  _handleFinishLoading = () => {
-    this.setState({ isLoadingComplete: true });
-  };
+      <Provider store={this.store}>
+        <AppNavigator />
+      </Provider>
+    )
+  }
 }
 
-// TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
-  // if (error) {
-  //   console.error(error)
-  //   return
-  // }
-  
-  // let locations = JSON.stringify(data.locations)
+AppRegistry.registerComponent('App', () => App)
 
-  // console.log(locations)
-
-  // try {
-  //   await AsyncStorage.setItem('locations', locations)
-
-  //   if (locationUpdateHook.onUpdate) {
-  //     locationUpdateHook.onUpdate(locations)
-  //   }
-  // } catch (e) {
-  //   console.error(e)
-  // }
-// });
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-});
+export default App

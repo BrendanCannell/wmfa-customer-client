@@ -1,0 +1,1 @@
+export default update = (...updaters) => ({type: 'UPDATE', updaters})
