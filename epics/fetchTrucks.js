@@ -6,6 +6,13 @@ import api from "../api"
 
 // Fetch trucks in the map region whenever it changes
 
+let flipCoords = truck => ({
+  ...truck,
+  location: {
+    coordinates: R.reverse(truck.location.coordinates)
+  }
+})
+
 export default (action$, state$) => state$.pipe(
   filter(R.prop('region')),
 
@@ -14,9 +21,9 @@ export default (action$, state$) => state$.pipe(
   switchMap(async ({region}) => {
     let query = toQuery(region)
 
-      , res = await api.get("/truckers", {body: {query: JSON.stringify(query)}})
+      , res = await api.get("/truckers") //,{body: {query: JSON.stringify(query)}})
 
-      , trucks = R.fromPairs(res.body.map(truck => [truck._id, truck]))
+      , trucks = R.fromPairs((res.body || []).map(truck => [truck._id, flipCoords(truck)]))
 
     return update([['trucks'], R.mergeLeft(trucks)])
   })

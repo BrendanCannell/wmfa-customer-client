@@ -8,6 +8,7 @@
 import React from 'react'
 import { AppRegistry, AppState, View, TouchableOpacity } from 'react-native'
 import { Provider } from 'react-redux'
+import { Notifications } from 'expo'
 import R from 'ramda'
 
 import store from "./store"
@@ -24,22 +25,24 @@ class App extends React.Component {
 
     this.store = store
 
-    // Subscribe to app state changes
+    // Subscribe to...
+
+    // ...app state changes
     AppState.addEventListener('change', () => this.store.dispatch({type: 'APP_STATE_CHANGE'}))
 
-    // Subscribe to background location updates
+    // ...background location updates
     setOnUpdate(location => this.store.dispatch(update([['user', 'local', 'location'], () => location])))
+
+    // ...notifications
+    Notifications.addListener(notification => console.log('notification:', notification) || this.store.dispatch({type: 'NOTIFICATION', notification}))
 
     // Set initial state
     this.store.dispatch(set({
       user: {
         local: {
           id: null,
-          preferences: {
-            favorites: [],
-            receiveNotifications: true,
-            notificationDistance: 1000
-          },
+          favorites: [],
+          notificationDistance: 1000,
           pushToken: null,
           location: null,
           timestamp: Date.now()
@@ -47,32 +50,19 @@ class App extends React.Component {
         remote: null
       },
       region: null,
-      trucks: {
-        '0': {
-          location: {
-            coordinates: [-79, 35]
-          },
-          title: "Trucko",
-          isFavorite: false
-        }
-      },
+      trucks: {},
       storageLoaded: false,
-      backgroundLocationTaskRunning: false,
+      watchingBackground: false,
     }))
 
     // Go
     this.store.dispatch({type: 'START'})
   }
 
-  render() {
-    return (
-      // <TouchableOpacity style={{flex: 1, alignItems: 'stretch', backgroundColor: 'blue'}} onPress={() => this.store.dispatch(set({here: true}))} />
-
-      <Provider store={this.store}>
-        <AppNavigator />
-      </Provider>
-    )
-  }
+  render = () =>
+    <Provider store={this.store}>
+      <AppNavigator />
+    </Provider>
 }
 
 AppRegistry.registerComponent('App', () => App)

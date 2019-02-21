@@ -8,7 +8,7 @@ import distance from '@turf/distance'
 
 import TruckMarker from "../components/TruckMarker"
 import locationInUseGranted from "../util/locationInUseGranted"
-import {toggleFavorite, set} from "../actions"
+import {toggleFavorite, set, update} from "../actions"
 
 let invisible = require("../assets/images/20x20-00000000.png")
 
@@ -20,10 +20,10 @@ let toLatLng = ([lon, lat]) => ({
 let toPoint = ({latitude, longitude}) => [longitude, latitude]
 
 let toBoundary = ({latitude, longitude, latitudeDelta, longitudeDelta}) => {
-    let latTop    = latitude + latitudeDelta
-      , latBottom = latitude - latitudeDelta
-      , lonLeft  = longitude + longitudeDelta
-      , lonRight = longitude - longitudeDelta
+    let latTop    = latitude + 3 * latitudeDelta
+      , latBottom = latitude - 3 * latitudeDelta
+      , lonLeft  = longitude + 3 * longitudeDelta
+      , lonRight = longitude - 3 * longitudeDelta
   
   return [
     [lonLeft, latTop],
@@ -34,7 +34,7 @@ let toBoundary = ({latitude, longitude, latitudeDelta, longitudeDelta}) => {
   ].map(toLatLng)
 }
 
-let toCircle = (center, radius) => 
+let toCircle = (center, radius) =>
   circle(toPoint(center), radius / 1000, {steps: 100, units: 'kilometers'})
     .geometry.coordinates[0]
     .map(toLatLng)
@@ -70,11 +70,11 @@ class Map extends React.Component {
   }
 
   render() {
-    let notificationCircle = this.state.region && this.props.locationEnabled && this.props.location &&
+    let notificationCircle = this.state.region && this.props.locationEnabled && this.props.location && this.props.notificationDistance &&
       <NotificationCircle
         region={this.state.region}
         location={this.props.location.coords}
-        notificationDistance={this.props.preferences.notificationDistance}
+        notificationDistance={this.props.notificationDistance}
         setThis={that => this.circleThis = that}
       />
 
@@ -82,10 +82,10 @@ class Map extends React.Component {
     
     let onDrag = e => this.circleThis.setState({notificationDistance: dragDistance(e)})
 
-    let onDragEnd = e => this.props.update([['user', 'local', 'preferences', 'notificationDistance'], () => dragDistance(e)])
+    let onDragEnd = e => this.props.update([['user', 'local', 'notificationDistance'], () => dragDistance(e)])
 
-    let markers = this.props.locationEnabled && this.props.location &&
-      toCircle(this.props.location.coords, this.props.preferences.notificationDistance)
+    let markers = this.props.locationEnabled && this.props.location && this.props.notificationDistance &&
+      toCircle(this.props.location.coords, this.props.notificationDistance)
         .slice(1)
         .map(coordinate =>
           <MapView.Marker
@@ -106,14 +106,13 @@ class Map extends React.Component {
         initialRegion={this.props.region}
         onRegionChange={region => this.setState({region})}
         onRegionChangeComplete={region => this.props.set({region})}
-        onPress={() => console.log('onPress')}
       >
         {markers}
-        {Object.entries(this.props.trucks).map(([id, truck]) =>
+        {Object.entries(this.props.trucks).filter(([id, truck]) => truck.status === 'open').map(([id, truck]) =>
           <TruckMarker
             truck={truck}
-            isFavorite={R.contains(id, this.props.preferences.favorites)}
-            onPress={() => this.props.toggleFavorite(id)}
+            isFavorite={R.contains(id, this.props.favorites)}
+            toggleFavorite={() => this.props.toggleFavorite(id)}
             key={id}
           />)}
         {notificationCircle}
@@ -123,7 +122,7 @@ class Map extends React.Component {
 }
 
 let mapStateToProps = state => ({
-  ...R.pick(['location', 'preferences'], state.user.local),
+  ...R.pick(['location', 'favorites', 'notificationDistance'], state.user.local),
   ...R.pick(['region', 'trucks'], state),
   locationEnabled: locationInUseGranted(state.permissions)
 })

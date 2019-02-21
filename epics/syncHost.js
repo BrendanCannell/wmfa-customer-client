@@ -65,7 +65,7 @@ let unwatchBackground = () => console.log('unwatching background') || Location.s
 // Temporary substitute until the above can be done properly
 
 let locationForegroundByPermissions = (action$, state$) => state$.pipe(
-  distinctUntilChanged(({permissions}) => locationInUseGranted(permissions)),
+  distinctUntilChanged(null, ({permissions}) => locationInUseGranted(permissions)),
 
   switchMap(async ({permissions, watchingForeground, unwatchForeground}) => {
     let shouldWatchForeground = locationInUseGranted(permissions)
@@ -127,6 +127,8 @@ let pushToken = (action$, state$) => state$.pipe(
   switchMap(async () => {
     let pushToken = await Notifications.getExpoPushTokenAsync()
 
+    console.log('pushToken:', pushToken)
+
     return update([['user', 'local', 'pushToken'], () => pushToken])
   })
 )
@@ -146,6 +148,9 @@ let storageLoad = (action$, state$) => action$.pipe(
 
       , storage = R.fromPairs(withParsedVals)
 
+    console.log('storage: ', storage)
+
+    // return set({storageLoaded: true}) // For resets
     return set({...storage, storageLoaded: true})
   }))
 

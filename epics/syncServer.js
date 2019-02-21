@@ -12,49 +12,59 @@ import api from "../api"
 let register = (action$, state$) => state$.pipe(
   filter(({user, storageLoaded}) => user && !user.local.id && storageLoaded),
 
-  distinctUntilChanged(getId),
+  distinctUntilChanged(null, getId),
 
   switchMap(async () => {
     console.log('registering...')
 
-    let {body: {_id, username}} = await api.post("/eaters/")
+    let res = await api.post("/eaters/", {body: {username: "" + Math.random()}}).catch(null)
 
-    console.log('registration complete')
+    if (!res.body) return
+
+    let {_id, username} = res.body
+
+    console.log('registration complete:', res.body._id)
 
     return update([['user', 'local'], R.mergeLeft({id: _id, username})])
   }),
   
-  retry(2))
+  // retry(2),
+  
+  filter(Boolean))
 
 
 // If we have an id, send user data changes to the server
 
 let user = (action$, state$) => state$.pipe(
-  distinctUntilChanged(({user}) => user && user.local, R.equals),
+  distinctUntilChanged(R.equals, state => state.user && toServerSchema(state)),
 
   filter(({user}) => user && user.local.id),
 
-  throttleTime(10000),
+  throttleTime(1000),
 
-  switchMap(({user: {local}}) =>
-    defer(() => from(api.put("/eaters/" + local.id, {body: toServerSchema(local)}))).pipe(
+  switchMap(state =>
+    defer(() => from(api.put("/eaters/" + state.user.local.id, {body: toServerSchema(state)}))).pipe(
       tap(() => console.log('sending update...')),
       retry(1),
       catchError(() => of(null)),
       tap(res => console.log(res ? 'update succeeded' : 'update failed')),
       filter(Boolean),
-      map(res => update([['user', 'remote'], R.mergeLeft(res.body || {})])),)),
+      map(res => update([['user', 'remote'], () => toServerSchema(state)])),)),
   )
 
 
 let getId = R.path(['user', 'local', 'id'])
 
-let toServerSchema = user => ({
-  location: user.location && {
+let toServerSchema = state => ({
+  location: state.user.local.location && {
     type: 'Point',
-    coordinates: [user.location.coords.longitude, user.location.coords.latitude]
+    coordinates: R.reverse([
+      state.user.local.location.coords.longitude,
+      state.user.local.location.coords.latitude
+    ])
   },
-  ...R.pick(['favorites', 'receiveNotifications', 'notificationDistance', 'pushToken'], user)
+  ...R.pick(['favorites', 'notificationDistance', 'pushToken'], state.user.local),
+  receiveNotifications: R.path(['permissions', 'notifications', 'status'], state) === 'granted'
 })
 
 export default syncServer = combineEpics(register, user)

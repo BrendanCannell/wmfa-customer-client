@@ -1,30 +1,44 @@
 import React from 'react'
-import {Image, Text} from 'react-native'
+import {Button, Image, Text, TouchableOpacity} from 'react-native'
 import {MapView} from 'expo'
+import R from 'ramda'
 
-let icons = {
-  truck: require("../assets/images/truck-icon-png-10.jpg"),
-  favorite: require("../assets/images/heartblue.png")
-}
+let icons = R.map(source =>
+  <Image
+    source={source}
+    style={{width: 40, height: 40}}
+  />, {
+  markerDefault: require("../assets/images/truck-all.png"),
+  markerFavorite: require("../assets/images/truck-fav.png"),
+  addFavorite: require("../assets/images/heart-gray.png"),
+  removeFavorite: require("../assets/images/heart-red.png"),
+})
 
-export default TruckMarker = props => {
-  let {truck} = props
+export default TruckMarker = (props) => {
+  let {truck, isFavorite, toggleFavorite} = props
     , [longitude, latitude] = truck.location.coordinates
 
   return (
     <MapView.Marker
       coordinate={{longitude, latitude}}
       title={truck.title}
-      onPress={props.onPress}
+      tracksInfoWindowChanges={true}
     >
-      <Image
-        source={props.isFavorite ? icons.favorite : icons.truck}
-        style={{width: props.width || 40, height: props.height || 40}}
-      />
-      <Text>{truck.title}</Text>
-      {/* <MapView.Callout>
-        <Text>Test</Text>
-      </MapView.Callout> */}
+      {icons[isFavorite ? 'markerFavorite' : 'markerDefault']}
+      <MapView.Callout
+        tooltip
+        onPress={toggleFavorite}
+        style={{
+          padding: 10,
+          width: truck.title.length * 8 + 50,
+          backgroundColor: '#fcbe59',
+          flexDirection: 'row',
+          justifyContent: 'space-evenly'
+        }}
+      >
+        {icons[isFavorite ? 'removeFavorite' : 'addFavorite']}
+        <Text>{truck.title}</Text>
+      </MapView.Callout>
     </MapView.Marker>
   )
 }

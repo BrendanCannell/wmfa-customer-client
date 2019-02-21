@@ -1,11 +1,15 @@
 import React from 'react'
 
 import {
+  AppState,
   AsyncStorage,
   Button,
+  Dimensions,
+  Image,
+  Modal,
   Text,
+  TouchableHighlight,
   View,
-  AppState,
 } from 'react-native'
 
 import {connect} from 'react-redux'
@@ -15,42 +19,56 @@ import * as R from 'ramda'
 
 import Map from "../components/Map"
 import locationInUseGranted from "../util/locationInUseGranted"
-import toggleFavorite from "../actions/toggleFavorite"
+import {set} from "../actions"
+
+let logo = require("../assets/images/LogoTextUser.png")
 
 class HomeScreen extends React.Component {
   static navigationOptions = {
     header: null
   }
 
-  render = () => true ?
+  render = () =>
     <View style={{flex: 1}}>
-      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'stretch'}}>
-        <View style={{flex: 1, justifyContent: 'center', borderWidth: 2}}>
-          <Text style={{color: 'white', fontSize: 48, textAlign: 'center', textAlignVertical: 'center'}}>WMFA!?</Text>
-        </View>
-        <View style={{justifyContent: 'center', borderWidth: 2}}>
-          <Button
-            title="Settings"
-            onPress={() => this.props.navigation.navigate("Settings")}
-          />
-        </View>
+      <View style={{width: Dimensions.get('window').width, height: 10, backgroundColor: '#fcbe59'}}/>
+      <Image
+        source={logo}
+        style={{width: Dimensions.get('window').width, height: Dimensions.get('window').width / 506 * 129}}
+        // height={Dimensions.get('window').width / 506 * 129}
+      />
+      <View style={{flex: 1}}>
+        {this.props.showMap ? <Map /> : <View />}
+        {this.props.notification && this.props.notification.truck &&
+        <View
+          style={{
+            position: 'absolute',
+            backgroundColor: 'white',
+            opacity: 0.8,
+            top: 20, left: 20,
+            height: 100,
+            width: Dimensions.get('window').width - 40,
+            zIndex: 100,
+            justifyContent: 'space-evenly'
+          }}
+        >
+          <Text style={{fontSize: 24}}>{this.props.notification.truck.title} is now serving near you!</Text>
+          <TouchableHighlight onPress={() => this.props.set({notification: null})}>
+            <Text style={{alignSelf: 'center'}}>Ok</Text>
+          </TouchableHighlight>
+        </View>}
       </View>
-      {this.props.showMap ? <Map /> : <View />}
     </View>
-    : <View />
 }
 
 let clearStore = () => AsyncStorage.getAllKeys().then(AsyncStorage.multiRemove)
 
 let mapStateToProps = state => ({
+  notification: state.notification && {...state.notification, truck: state.trucks[state.notification.data.id]},
   showMap: state.storageLoaded && state.permissions && (state.region || !locationInUseGranted(state.permissions))
 })
 
 let mapDispatchToProps = {
-  toggleFavorite
+  set
 }
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(HomeScreen)
+export default connect(mapStateToProps, mapDispatchToProps)(HomeScreen)
