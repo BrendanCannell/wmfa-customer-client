@@ -90,7 +90,7 @@ class Landing extends React.Component {
         <View style={styles.subButton}>
           <Button
             title="Submit"
-            onPress={() => this.props.navigation.navigate("HomeScreen")}
+            onPress={() => this.props.navigation.navigate("Home")}
           />
         </View>
       </View>
