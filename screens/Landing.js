@@ -11,6 +11,7 @@ import {
   View
 } from "react-native";
 
+import { connect } from "react-redux";
 import Logo from "../assets/images/Logo.png";
 import LogoText from "../assets/images/LogoTextUser.png";
 
@@ -59,8 +60,7 @@ const styles = StyleSheet.create({
 
 class Landing extends React.Component {
   static navigationOptions = ({ navigation }) => ({
-    title: "Landing",
-    background: "#ffbd59"
+    header: null
   });
 
   render() {
@@ -74,6 +74,7 @@ class Landing extends React.Component {
         }}
       >
         <Image
+          onPress={() => this.props.navigation.navigate("Truck")}
           style={{ width: 150, height: 150, marginTop: 40, marginBottom: 8 }}
           source={Logo}
           alt="nope"
@@ -90,7 +91,7 @@ class Landing extends React.Component {
         <View style={styles.subButton}>
           <Button
             title="Submit"
-            onPress={() => this.props.navigation.navigate("HomeScreen")}
+            onPress={() => this.props.navigation.navigate("Home")}
           />
         </View>
       </View>
@@ -98,4 +99,4 @@ class Landing extends React.Component {
   }
 }
 
-export default Landing;
+export default connect()(Landing);
